@@ -11,8 +11,8 @@
         </h2>
         
         {% if teams|length >= 2 %}
-        <form method="post" action="/generate-matches" class="mb-4 md:mb-0">
-            <button type="submit" 
+        <form method="post" action="/generate-matches" class="mb-4 md:mb-0" x-data="adminAuth">
+            <button type="submit" @click="requireAuth($event)"
                     class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
                 🎯 Generar Round-Robin
             </button>
@@ -21,44 +21,57 @@
     </div>
 
     <!-- Add Team Form -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">➕ Añadir Nueva Pareja</h3>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-data="{ showForm: false }">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">➕ Añadir Nueva Pareja</h3>
+            <button @click="showForm = !showForm" 
+                    class="bg-mus-600 hover:bg-mus-700 text-white px-4 py-2 rounded-md font-semibold transition-colors">
+                <span x-show="!showForm">Mostrar Formulario</span>
+                <span x-show="showForm">Ocultar Formulario</span>
+            </button>
+        </div>
         
-        <form method="post" action="/teams" class="space-y-4">
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de la Pareja
-                </label>
-                <input type="text" id="name" name="name" required
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
-                       placeholder="Los Invencibles">
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div x-show="showForm" x-transition class="space-y-4">
+            <form method="post" action="/teams" class="space-y-4" x-data="adminAuth">
                 <div>
-                    <label for="player1" class="block text-sm font-medium text-gray-700 mb-1">
-                        Jugador 1
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre de la Pareja
                     </label>
-                    <input type="text" id="player1" name="player1" required
+                    <input type="text" id="name" name="name" required
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
-                           placeholder="Juan">
+                           placeholder="Los Invencibles">
                 </div>
                 
-                <div>
-                    <label for="player2" class="block text-sm font-medium text-gray-700 mb-1">
-                        Jugador 2
-                    </label>
-                    <input type="text" id="player2" name="player2" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
-                           placeholder="Pedro">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="player1" class="block text-sm font-medium text-gray-700 mb-1">
+                            Jugador 1
+                        </label>
+                        <input type="text" id="player1" name="player1" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
+                               placeholder="Juan">
+                    </div>
+                    
+                    <div>
+                        <label for="player2" class="block text-sm font-medium text-gray-700 mb-1">
+                            Jugador 2
+                        </label>
+                        <input type="text" id="player2" name="player2" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
+                               placeholder="Pedro">
+                    </div>
                 </div>
-            </div>
-            
-            <button type="submit" 
-                    class="w-full md:w-auto bg-mus-600 hover:bg-mus-700 text-white px-6 py-2 rounded-md font-semibold transition-colors">
-                Añadir Pareja
-            </button>
-        </form>
+                
+                <button type="submit" @click="requireAuth($event)"
+                        class="w-full md:w-auto bg-mus-600 hover:bg-mus-700 text-white px-6 py-2 rounded-md font-semibold transition-colors">
+                    Añadir Pareja
+                </button>
+            </form>
+        </div>
+        
+        <div x-show="!showForm" class="text-center py-8 text-gray-500">
+            <p>Haz clic en "Mostrar Formulario" para añadir una nueva pareja</p>
+        </div>
     </div>
 
     <!-- Teams List -->
