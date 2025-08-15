@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Ranking - Torneo de Mus{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800">
+            🏆 Tabla de Posiciones
+        </h2>
+        <p class="text-gray-600 mt-2">
+            Ranking por vacas ganadas, diferencia de partidas y diferencia de puntos
+        </p>
+    </div>
+
+    {% if ranking %}
+    <!-- Ranking Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Desktop Table -->
+        <div class="hidden md:block">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-mus-600">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Posición
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Pareja
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            Vacas
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            Dif. Partidas
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            Dif. Puntos
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            Enfrentamientos
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for entry in ranking %}
+                    <tr class="hover:bg-gray-50 {% if loop.index == 1 %}bg-yellow-50{% elif loop.index == 2 %}bg-gray-100{% elif loop.index == 3 %}bg-orange-50{% endif %}">
+                        <!-- Position -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-10 h-10">
+                                    {% if loop.index == 1 %}
+                                    <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        🥇
+                                    </div>
+                                    {% elif loop.index == 2 %}
+                                    <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        🥈
+                                    </div>
+                                    {% elif loop.index == 3 %}
+                                    <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        🥉
+                                    </div>
+                                    {% else %}
+                                    <div class="w-10 h-10 bg-mus-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                        {{ loop.index }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Team -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm">
+                                <div class="font-semibold text-gray-900">{{ entry.team.name }}</div>
+                                <div class="text-gray-600">{{ entry.team.player1 }} & {{ entry.team.player2 }}</div>
+                            </div>
+                        </td>
+                        
+                        <!-- Vacas -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-xl font-bold text-green-600">{{ entry.vacas_ganadas }}</span>
+                        </td>
+                        
+                        <!-- Diferencia Partidas -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-lg font-semibold {% if entry.diferencia_partidas > 0 %}text-green-600{% elif entry.diferencia_partidas < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                                {% if entry.diferencia_partidas > 0 %}+{% endif %}{{ entry.diferencia_partidas }}
+                            </span>
+                        </td>
+                        
+                        <!-- Diferencia Puntos -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-lg font-semibold {% if entry.diferencia_puntos > 0 %}text-green-600{% elif entry.diferencia_puntos < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                                {% if entry.diferencia_puntos > 0 %}+{% endif %}{{ entry.diferencia_puntos }}
+                            </span>
+                        </td>
+                        
+                        <!-- Enfrentamientos -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm text-gray-600">{{ entry.enfrentamientos }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden divide-y divide-gray-200">
+            {% for entry in ranking %}
+            <div class="p-4 {% if loop.index == 1 %}bg-yellow-50{% elif loop.index == 2 %}bg-gray-100{% elif loop.index == 3 %}bg-orange-50{% endif %}">
+                <div class="flex items-start justify-between mb-3">
+                    <!-- Position -->
+                    <div class="flex-shrink-0">
+                        {% if loop.index == 1 %}
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            🥇
+                        </div>
+                        {% elif loop.index == 2 %}
+                        <div class="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            🥈
+                        </div>
+                        {% elif loop.index == 3 %}
+                        <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            🥉
+                        </div>
+                        {% else %}
+                        <div class="w-12 h-12 bg-mus-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                            {{ loop.index }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Team Info -->
+                    <div class="flex-1 ml-3">
+                        <div class="font-semibold text-gray-900 text-lg">{{ entry.team.name }}</div>
+                        <div class="text-gray-600 text-sm">{{ entry.team.player1 }} & {{ entry.team.player2 }}</div>
+                    </div>
+                </div>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">{{ entry.vacas_ganadas }}</div>
+                        <div class="text-xs text-gray-600">Vacas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold {% if entry.diferencia_partidas > 0 %}text-green-600{% elif entry.diferencia_partidas < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                            {% if entry.diferencia_partidas > 0 %}+{% endif %}{{ entry.diferencia_partidas }}
+                        </div>
+                        <div class="text-xs text-gray-600">Dif. Partidas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold {% if entry.diferencia_puntos > 0 %}text-green-600{% elif entry.diferencia_puntos < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                            {% if entry.diferencia_puntos > 0 %}+{% endif %}{{ entry.diferencia_puntos }}
+                        </div>
+                        <div class="text-xs text-gray-600">Dif. Puntos</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-gray-600">{{ entry.enfrentamientos }}</div>
+                        <div class="text-xs text-gray-600">Enfrentamientos</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-6 bg-mus-50 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-mus-800 mb-3">📖 Criterios de Ranking</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-mus-700">
+            <div class="flex items-center">
+                <div class="w-6 h-6 bg-green-500 rounded mr-2 flex items-center justify-center text-white text-xs font-bold">1</div>
+                <span><strong>Vacas ganadas</strong> (enfrentamientos ganados)</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-6 h-6 bg-blue-500 rounded mr-2 flex items-center justify-center text-white text-xs font-bold">2</div>
+                <span><strong>Diferencia de partidas</strong> (ganadas - perdidas)</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-6 h-6 bg-purple-500 rounded mr-2 flex items-center justify-center text-white text-xs font-bold">3</div>
+                <span><strong>Diferencia de puntos</strong> (favor - contra)</span>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Empty state -->
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay datos para mostrar</h3>
+        <p class="mt-2 text-sm text-gray-500 mb-4">
+            El ranking se actualizará conforme se vayan jugando los enfrentamientos.
+        </p>
+        <div class="space-x-3">
+            <a href="/teams" 
+               class="inline-flex items-center px-4 py-2 bg-mus-600 hover:bg-mus-700 text-white rounded-md font-medium transition-colors">
+                👥 Gestionar Parejas
+            </a>
+            <a href="/matches" 
+               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors">
+                🎯 Ver Enfrentamientos
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

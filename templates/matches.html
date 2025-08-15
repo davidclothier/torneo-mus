@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Enfrentamientos - Torneo de Mus{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto" x-data="matchFilters()">
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-800">
+            🎯 Enfrentamientos del Torneo
+        </h2>
+        <p class="text-gray-600 mt-2">
+            Round-robin entre todas las parejas. Cada enfrentamiento es al mejor de 3 partidas.
+        </p>
+    </div>
+
+    {% if matches %}
+    <!-- Filters Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <!-- Status Filter -->
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    📊 Filtrar por Estado
+                </label>
+                <div class="flex flex-wrap gap-2">
+                    <button @click="statusFilter = 'all'" 
+                            :class="statusFilter === 'all' ? 'bg-mus-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                            class="px-4 py-2 rounded-lg font-medium transition-colors">
+                        Todos (<span x-text="allMatches.length"></span>)
+                    </button>
+                    <button @click="statusFilter = 'pending'" 
+                            :class="statusFilter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                            class="px-4 py-2 rounded-lg font-medium transition-colors">
+                        Pendientes (<span x-text="pendingMatches.length"></span>)
+                    </button>
+                    <button @click="statusFilter = 'completed'" 
+                            :class="statusFilter === 'completed' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                            class="px-4 py-2 rounded-lg font-medium transition-colors">
+                        Completados (<span x-text="completedMatches.length"></span>)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Team Filter -->
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    👥 Filtrar por Pareja
+                </label>
+                <select x-model="teamFilter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500">
+                    <option value="">Todas las parejas</option>
+                    {% set unique_teams = [] %}
+                    {% for match in matches %}
+                        {% if match.team1_id not in unique_teams %}
+                            {% set _ = unique_teams.append(match.team1_id) %}
+                            <option value="{{ match.team1_id }}">{{ match.team1.name }}</option>
+                        {% endif %}
+                        {% if match.team2_id not in unique_teams %}
+                            {% set _ = unique_teams.append(match.team2_id) %}
+                            <option value="{{ match.team2_id }}">{{ match.team2.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Clear Filters -->
+            <div class="lg:flex-shrink-0">
+                <button @click="clearFilters()" 
+                        class="w-full lg:w-auto px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                    🔄 Limpiar Filtros
+                </button>
+            </div>
+        </div>
+        
+        <!-- Active filters indicator -->
+        <div x-show="hasActiveFilters()" x-transition class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex items-center text-sm text-gray-600">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
+                </svg>
+                <span>Mostrando <span x-text="filteredMatches.length"></span> de {{ matches|length }} enfrentamientos</span>
+            </div>
+        </div>
+    </div>
+    <!-- Stats -->
+    {% set completed_count = namespace(value=0) %}
+    {% set pending_count = namespace(value=0) %}
+    {% for match in matches %}
+        {% set team1_wins = match.games|selectattr("winner_id", "equalto", match.team1_id)|list|length %}
+        {% set team2_wins = match.games|selectattr("winner_id", "equalto", match.team2_id)|list|length %}
+        {% if team1_wins >= 3 or team2_wins >= 3 %}
+            {% set completed_count.value = completed_count.value + 1 %}
+        {% else %}
+            {% set pending_count.value = pending_count.value + 1 %}
+        {% endif %}
+    {% endfor %}
+    
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ matches|length }}</div>
+            <div class="text-sm text-gray-600">Total</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <div class="text-2xl font-bold text-green-600">{{ completed_count.value }}</div>
+            <div class="text-sm text-gray-600">Completados</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center col-span-2 md:col-span-1">
+            <div class="text-2xl font-bold text-yellow-600">{{ pending_count.value }}</div>
+            <div class="text-sm text-gray-600">Pendientes</div>
+        </div>
+    </div>
+
+    <!-- Matches Grid -->
+    <div class="grid gap-4">
+        <template x-for="match in filteredMatches" :key="match.id">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="p-4">
+                    <!-- Match Header -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-3">
+                        <div class="flex-1">
+                            <!-- Teams -->
+                            <div class="text-center md:text-left">
+                                <div class="text-lg font-semibold text-gray-800 mb-1">
+                                    <span :class="match.team1_wins >= 3 ? 'text-green-600 font-bold' : ''" x-text="match.team1_name"></span>
+                                    <span class="mx-2 text-gray-400">vs</span>
+                                    <span :class="match.team2_wins >= 3 ? 'text-green-600 font-bold' : ''" x-text="match.team2_name"></span>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <span x-text="match.team1_players"></span>
+                                    <span class="mx-1">⚡</span>
+                                    <span x-text="match.team2_players"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Badge -->
+                        <div class="mt-3 md:mt-0 md:ml-4">
+                            <span x-show="match.team1_wins >= 3 || match.team2_wins >= 3" 
+                                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ✅ Completado
+                            </span>
+                            <span x-show="match.team1_wins < 3 && match.team2_wins < 3 && match.games_count > 0" 
+                                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                🔄 En progreso
+                            </span>
+                            <span x-show="match.games_count === 0" 
+                                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                ⏳ Pendiente
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Games Summary -->
+                    <div x-show="match.games_count > 0" class="mb-3">
+                        <div class="text-center mb-2">
+                            <span class="text-lg font-bold" :class="match.team1_wins > match.team2_wins ? 'text-green-600' : ''" x-text="match.team1_wins"></span>
+                            <span class="mx-2 text-gray-400">-</span>
+                            <span class="text-lg font-bold" :class="match.team2_wins > match.team1_wins ? 'text-green-600' : ''" x-text="match.team2_wins"></span>
+                            <span class="ml-2 text-sm text-gray-600">(partidas)</span>
+                        </div>
+                        
+                        <!-- Games dots -->
+                        <div class="flex justify-center space-x-1">
+                            <template x-for="game in match.games_dots" :key="game.number">
+                                <div class="w-3 h-3 rounded-full" 
+                                     :class="game.winner === 'team1' ? 'bg-blue-500' : 'bg-red-500'"
+                                     :title="'Partida ' + game.number + ': ' + game.score">
+                                </div>
+                            </template>
+                            
+                            <!-- Empty slots -->
+                            <template x-for="i in (3 - match.games_count)" :key="'empty-' + i">
+                                <div class="w-3 h-3 rounded-full bg-gray-200"></div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Completion date (only for completed matches) -->
+                    <div x-show="match.team1_wins >= 3 || match.team2_wins >= 3" class="text-center mb-3">
+                        <div class="text-xs text-gray-500">
+                            📅 Completado: <span x-text="match.completed_date"></span>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="text-center">
+                        <a :href="'/matches/' + match.id" 
+                           class="inline-flex items-center px-4 py-2 bg-mus-600 hover:bg-mus-700 text-white rounded-md font-medium transition-colors">
+                            <span x-show="match.team1_wins >= 3 || match.team2_wins >= 3">📊 Ver Detalles</span>
+                            <span x-show="match.team1_wins < 3 && match.team2_wins < 3">⚽ Registrar Resultado</span>
+                            <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    {% else %}
+    <!-- Empty state -->
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay enfrentamientos generados</h3>
+        <p class="mt-2 text-sm text-gray-500 mb-4">
+            Necesitas registrar al menos 2 parejas y generar el round-robin.
+        </p>
+        <a href="/teams" 
+           class="inline-flex items-center px-4 py-2 bg-mus-600 hover:bg-mus-700 text-white rounded-md font-medium transition-colors">
+            👥 Ir a Parejas
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function matchFilters() {
+    return {
+        statusFilter: 'all',
+        teamFilter: '',
+        
+        // All matches data (populated from server)
+        allMatches: [
+            {% for match in matches %}
+            {
+                id: {{ match.id }},
+                team1_id: {{ match.team1_id }},
+                team2_id: {{ match.team2_id }},
+                team1_name: "{{ match.team1.name }}",
+                team2_name: "{{ match.team2.name }}",
+                team1_players: "{{ match.team1.player1 }} & {{ match.team1.player2 }}",
+                team2_players: "{{ match.team2.player1 }} & {{ match.team2.player2 }}",
+                team1_wins: {{ match.games|selectattr("winner_id", "equalto", match.team1_id)|list|length }},
+                team2_wins: {{ match.games|selectattr("winner_id", "equalto", match.team2_id)|list|length }},
+                games_count: {{ match.games|length }},
+                games_dots: [
+                    {% for game in match.games %}
+                    {
+                        number: {{ game.game_number }},
+                        winner: {% if game.winner_id == match.team1_id %}"team1"{% else %}"team2"{% endif %},
+                        score: "{{ game.team1_score }}-{{ game.team2_score }}"
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                completed_date: {% if match.games %}
+                    {% set last_game = match.games|last %}
+                    "{{ last_game.created_at.strftime('%d/%m/%Y %H:%M') if last_game else '' }}"
+                {% else %}
+                    ""
+                {% endif %}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        
+        get pendingMatches() {
+            return this.allMatches.filter(match => 
+                match.team1_wins < 3 && match.team2_wins < 3
+            );
+        },
+        
+        get completedMatches() {
+            return this.allMatches.filter(match => 
+                match.team1_wins >= 3 || match.team2_wins >= 3
+            );
+        },
+        
+        get filteredMatches() {
+            let matches = this.allMatches;
+            
+            // Filter by status
+            if (this.statusFilter === 'pending') {
+                matches = this.pendingMatches;
+            } else if (this.statusFilter === 'completed') {
+                matches = this.completedMatches;
+            }
+            
+            // Filter by team
+            if (this.teamFilter) {
+                const teamId = parseInt(this.teamFilter);
+                matches = matches.filter(match => 
+                    match.team1_id === teamId || match.team2_id === teamId
+                );
+            }
+            
+            return matches;
+        },
+        
+        hasActiveFilters() {
+            return this.statusFilter !== 'all' || this.teamFilter !== '';
+        },
+        
+        clearFilters() {
+            this.statusFilter = 'all';
+            this.teamFilter = '';
+        }
+    }
+}
+</script>
+
+{% endblock %}

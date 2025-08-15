@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Torneo de Mus{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mus: {
+                            50: '#fefce8',
+                            100: '#fef9c3',
+                            200: '#fef08a',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            700: '#a16207',
+                            800: '#854d0e',
+                            900: '#713f12'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-mus-800 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <nav class="flex justify-between items-center">
+                <h1 class="text-xl md:text-2xl font-bold">
+                    <a href="/" class="hover:text-mus-200">🃏 Torneo de Mus - Ribota 2025</a>
+                </h1>
+                
+                <!-- Mobile menu button -->
+                <button x-data="{ open: false }" @click="open = !open" 
+                        class="md:hidden block text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    
+                    <!-- Mobile menu -->
+                    <div x-show="open" x-transition 
+                         class="absolute top-16 left-0 w-full bg-mus-800 shadow-lg md:hidden z-50">
+                        <div class="px-4 py-2 space-y-2">
+                            <a href="/" class="block py-2 text-white hover:text-mus-200">Inicio</a>
+                            <a href="/teams" class="block py-2 text-white hover:text-mus-200">Parejas</a>
+                            <a href="/matches" class="block py-2 text-white hover:text-mus-200">Enfrentamientos</a>
+                            <a href="/ranking" class="block py-2 text-white hover:text-mus-200">Ranking</a>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- Desktop menu -->
+                <div class="hidden md:flex space-x-6">
+                    <a href="/" class="hover:text-mus-200 transition-colors">Inicio</a>
+                    <a href="/teams" class="hover:text-mus-200 transition-colors">Parejas</a>
+                    <a href="/matches" class="hover:text-mus-200 transition-colors">Enfrentamientos</a>
+                    <a href="/ranking" class="hover:text-mus-200 transition-colors">Ranking</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="container mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white text-center py-4 mt-12">
+        <p class="text-sm">¡Que gane el mejor! 🏆 ¡Viva Ribota! 🎉</p>
+    </footer>
+
+    <!-- Admin password modal -->
+    <div x-data="authModal" 
+         @keydown.escape="showModal = false">
+        
+        <!-- Modal backdrop -->
+        <div x-show="showModal" x-transition:enter="ease-out duration-300" 
+             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" 
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+             @click="showModal = false">
+        </div>
+        
+        <!-- Modal content -->
+        <div x-show="showModal" x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform scale-100"
+             x-transition:leave-end="opacity-0 transform scale-95"
+             class="fixed inset-0 flex items-center justify-center p-4 z-50">
+            
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6" @click.stop>
+                <h3 class="text-lg font-bold text-gray-900 mb-4">🔐 Acceso de Administrador</h3>
+                <p class="text-gray-600 mb-4">Introduce la contraseña para modificar resultados:</p>
+                
+                <form @submit.prevent="checkPassword()">
+                    <input type="password" x-model="password" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 mb-4"
+                           placeholder="Contraseña de admin" 
+                           x-ref="passwordInput">
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" @click="closeModal()"
+                                class="px-4 py-2 text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-mus-600 text-white rounded-md hover:bg-mus-700 transition-colors">
+                            Acceder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global auth store for Alpine.js
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('auth', {
+                showModal: false,
+                password: '',
+                pendingAction: null,
+                
+                requireAuth(action) {
+                    this.pendingAction = action;
+                    this.showModal = true;
+                    // Focus input after modal appears
+                    setTimeout(() => {
+                        document.querySelector('input[type="password"]')?.focus();
+                    }, 100);
+                },
+                
+                checkPassword() {
+                    if (this.password === 'gallegos') {
+                        this.showModal = false;
+                        this.password = '';
+                        if (this.pendingAction) {
+                            this.pendingAction();
+                            this.pendingAction = null;
+                        }
+                    } else {
+                        alert('Contraseña incorrecta');
+                        this.password = '';
+                    }
+                },
+                
+                closeModal() {
+                    this.showModal = false;
+                    this.password = '';
+                    this.pendingAction = null;
+                }
+            });
+            
+            // Auth modal component
+            Alpine.data('authModal', () => ({
+                get showModal() { return Alpine.store('auth').showModal; },
+                get password() { return Alpine.store('auth').password; },
+                set password(value) { Alpine.store('auth').password = value; },
+                
+                checkPassword() {
+                    Alpine.store('auth').checkPassword();
+                },
+                
+                closeModal() {
+                    Alpine.store('auth').closeModal();
+                }
+            }));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - Torneo de Mus{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Hero Section -->
+    <div class="text-center mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            🃏 Bienvenido al Torneo de Mus
+        </h2>
+        <p class="text-lg text-gray-600 mb-8">
+            Sistema round-robin entre parejas. ¡Que gane el mejor!
+        </p>
+    </div>
+
+    <!-- Tournament Progress -->
+    {% if matches_count > 0 %}
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">
+                🏁 Progreso del Torneo
+            </h3>
+            <span class="text-2xl font-bold text-mus-600">{{ progress_percentage }}%</span>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+            <div class="bg-gradient-to-r from-mus-500 to-green-500 h-4 rounded-full transition-all duration-1000 ease-out" 
+                 style="width: {{ progress_percentage }}%">
+            </div>
+        </div>
+        
+        <div class="flex justify-between text-sm text-gray-600">
+            <span>{{ completed_matches }} enfrentamientos completados</span>
+            <span>{{ matches_count - completed_matches }} pendientes</span>
+        </div>
+        
+        <!-- Progress description -->
+        <div class="mt-4 text-center">
+            {% if progress_percentage == 100 %}
+                <div class="text-green-600 font-semibold">
+                    🎉 ¡Torneo completado! ¡Felicidades a todos los participantes!
+                </div>
+            {% elif progress_percentage >= 75 %}
+                <div class="text-mus-600 font-semibold">
+                    🔥 ¡Estamos en la recta final! El torneo está casi terminado.
+                </div>
+            {% elif progress_percentage >= 50 %}
+                <div class="text-blue-600 font-semibold">
+                    ⚡ ¡A medio camino! El torneo está en su punto álgido.
+                </div>
+            {% elif progress_percentage >= 25 %}
+                <div class="text-yellow-600 font-semibold">
+                    🚀 ¡El torneo está tomando forma! Ya hay varios enfrentamientos completados.
+                </div>
+            {% elif progress_percentage > 0 %}
+                <div class="text-orange-600 font-semibold">
+                    🌟 ¡El torneo ha comenzado! Los primeros enfrentamientos ya están en marcha.
+                </div>
+            {% else %}
+                <div class="text-gray-600">
+                    ⏳ El torneo está listo para empezar. ¡A por todas!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Parejas -->
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-mus-600 mb-2">{{ teams_count }}</div>
+            <div class="text-gray-600">Parejas Registradas</div>
+        </div>
+        
+        <!-- Enfrentamientos -->
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">{{ matches_count }}</div>
+            <div class="text-gray-600">Enfrentamientos Totales</div>
+        </div>
+        
+        <!-- Completados -->
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ completed_matches }}</div>
+            <div class="text-gray-600">Enfrentamientos Completados</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">🚀 Acciones Rápidas</h3>
+        
+        <div class="space-y-4">
+            <!-- Add Team -->
+            <a href="/teams" 
+               class="flex items-center justify-between p-4 bg-mus-50 hover:bg-mus-100 rounded-lg transition-colors group">
+                <div class="flex items-center">
+                    <div class="bg-mus-500 text-white rounded-full p-2 mr-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-800">Gestionar Parejas</div>
+                        <div class="text-sm text-gray-600">Añadir, editar o ver parejas registradas</div>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 group-hover:text-mus-500 transition-colors" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+
+            <!-- View Matches -->
+            <a href="/matches" 
+               class="flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
+                <div class="flex items-center">
+                    <div class="bg-blue-500 text-white rounded-full p-2 mr-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-800">Ver Enfrentamientos</div>
+                        <div class="text-sm text-gray-600">Registrar resultados y ver estado</div>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+
+            <!-- View Ranking -->
+            <a href="/ranking" 
+               class="flex items-center justify-between p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                <div class="flex items-center">
+                    <div class="bg-green-500 text-white rounded-full p-2 mr-4">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-800">Ver Ranking</div>
+                        <div class="text-sm text-gray-600">Tabla de posiciones actualizada</div>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" 
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="mt-8 bg-mus-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-mus-800 mb-3">📋 Cómo funciona</h3>
+        <div class="space-y-2 text-sm text-mus-700">
+            <p><strong>Partida individual:</strong> Juego hasta 40 puntos</p>
+            <p><strong>Vaca:</strong> Al mejor de 3 partidas individuales</p>
+            <p><strong>Enfrentamiento:</strong> Una vaca entre 2 parejas específicas</p>
+            <p><strong>Torneo:</strong> Round-robin donde cada pareja juega contra todas las demás</p>
+        </div>
+        
+        <div class="mt-4 p-3 bg-mus-100 rounded">
+            <p class="text-sm text-mus-800">
+                <strong>🏆 Ranking por:</strong> 
+                1) Vacas ganadas → 2) Diferencia de partidas → 3) Diferencia de puntos
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
