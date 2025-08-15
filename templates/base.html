@@ -176,6 +176,17 @@
                     Alpine.store('auth').closeModal();
                 }
             }));
+            
+            // Admin auth component for form actions
+            Alpine.data('adminAuth', () => ({
+                requireAuth(event) {
+                    event.preventDefault();
+                    const form = event.target.closest('form');
+                    Alpine.store('auth').requireAuth(() => {
+                        form.submit();
+                    });
+                }
+            }));
         });
     </script>
 </body>
