@@ -7,6 +7,9 @@ from database import get_db, create_tables
 from models import Team, Match, Game, MatchStatus
 from sqlalchemy import func
 import itertools
+import qrcode
+import io
+import base64
 
 app = FastAPI(title="Torneo de Mus")
 
@@ -22,6 +25,20 @@ templates = Jinja2Templates(directory="templates")
 @app.on_event("startup")
 def startup():
     create_tables()
+
+# Generate QR code
+def generate_qr_code(url: str) -> str:
+    """Generate QR code as base64 encoded image"""
+    qr = qrcode.QRCode(version=1, box_size=6, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    return base64.b64encode(buffer.getvalue()).decode()
 
 # Home page
 @app.get("/", response_class=HTMLResponse)
@@ -48,12 +65,18 @@ def home(request: Request, db: Session = Depends(get_db)):
     # Calculate progress percentage
     progress_percentage = round((completed_matches / matches_count * 100) if matches_count > 0 else 0, 1)
     
+    # Generate QR code for the app URL
+    app_url = "https://torneo-mus.onrender.com/"
+    qr_code_base64 = generate_qr_code(app_url)
+    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "teams_count": teams_count,
         "matches_count": matches_count,
         "completed_matches": completed_matches,
-        "progress_percentage": progress_percentage
+        "progress_percentage": progress_percentage,
+        "qr_code": qr_code_base64,
+        "app_url": app_url
     })
 
 # Teams routes
