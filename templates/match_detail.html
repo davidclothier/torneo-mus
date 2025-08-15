@@ -3,6 +3,9 @@
 {% block title %}{{ match.team1.name }} vs {{ match.team2.name }} - Torneo de Mus{% endblock %}
 
 {% block content %}
+<!-- Calculate wins early -->
+{% set team1_wins = games|selectattr("winner_id", "equalto", match.team1_id)|list|length %}
+{% set team2_wins = games|selectattr("winner_id", "equalto", match.team2_id)|list|length %}
 <div class="max-w-4xl mx-auto" 
      x-data="{ 
         team1Score: '', 
@@ -118,8 +121,6 @@
         </div>
 
         <!-- Score Summary -->
-        {% set team1_wins = games|selectattr("winner_id", "equalto", match.team1_id)|list|length %}
-        {% set team2_wins = games|selectattr("winner_id", "equalto", match.team2_id)|list|length %}
         
         <div class="text-center mt-4">
             <div class="text-3xl font-bold">
