@@ -33,7 +33,7 @@
         <div class="container mx-auto px-4 py-4">
             <nav class="flex justify-between items-center">
                 <h1 class="text-xl md:text-2xl font-bold">
-                    <a href="/" class="hover:text-mus-200">🃏 Torneo de Mus - Ribota 2025</a>
+                    <a href="/" class="hover:text-mus-200">🃏 Torneo de Mus</a>
                 </h1>
                 
                 <!-- Mobile menu button -->
@@ -74,7 +74,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white text-center py-4 mt-12">
-        <p class="text-sm">¡Que gane el mejor! 🏆 ¡Viva Ribota! 🎉</p>
+        <p class="text-sm">¡Que gane el mejor! 🏆</p>
     </footer>
 
     <!-- Admin password modal -->
@@ -141,16 +141,31 @@
                     }, 100);
                 },
                 
-                checkPassword() {
-                    if (this.password === 'gallegos') {
-                        this.showModal = false;
-                        this.password = '';
-                        if (this.pendingAction) {
-                            this.pendingAction();
-                            this.pendingAction = null;
+                async checkPassword() {
+                    try {
+                        const formData = new FormData();
+                        formData.append('password', this.password);
+                        
+                        const response = await fetch('/admin/auth', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.showModal = false;
+                            this.password = '';
+                            if (this.pendingAction) {
+                                this.pendingAction();
+                                this.pendingAction = null;
+                            }
+                        } else {
+                            alert('Contraseña incorrecta');
+                            this.password = '';
                         }
-                    } else {
-                        alert('Contraseña incorrecta');
+                    } catch (error) {
+                        alert('Error al verificar contraseña');
                         this.password = '';
                     }
                 },
@@ -168,8 +183,8 @@
                 get password() { return Alpine.store('auth').password; },
                 set password(value) { Alpine.store('auth').password = value; },
                 
-                checkPassword() {
-                    Alpine.store('auth').checkPassword();
+                async checkPassword() {
+                    await Alpine.store('auth').checkPassword();
                 },
                 
                 closeModal() {

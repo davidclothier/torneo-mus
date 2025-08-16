@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -202,6 +202,14 @@ def edit_match_result(
     
     db.commit()
     return RedirectResponse(url="/matches", status_code=303)
+
+# Admin authentication route
+@app.post("/admin/auth")
+def admin_auth(password: str = Form(...)):
+    if password == "gallegos":
+        return JSONResponse({"success": True})
+    else:
+        return JSONResponse({"success": False}, status_code=401)
 
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
