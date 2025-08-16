@@ -435,6 +435,13 @@ def ranking_page(request: Request, db: Session = Depends(get_db)):
             Match.status == MatchStatus.COMPLETED
         ).count()
         
+        # Vacas perdidas (enfrentamientos completados donde no ganó)
+        vacas_perdidas = db.query(Match).filter(
+            ((Match.team1_id == team.id) | (Match.team2_id == team.id)),
+            Match.winner_id != team.id,
+            Match.status == MatchStatus.COMPLETED
+        ).count()
+        
         # Partidas ganadas y perdidas (en enfrentamientos completados)
         partidas_ganadas = 0
         partidas_perdidas = 0
@@ -470,6 +477,7 @@ def ranking_page(request: Request, db: Session = Depends(get_db)):
         ranking_data.append({
             "team": team,
             "vacas_ganadas": vacas_ganadas,
+            "vacas_perdidas": vacas_perdidas,
             "diferencia_partidas": partidas_ganadas - partidas_perdidas,
             "enfrentamientos": f"{enfrentamientos_jugados}/{enfrentamientos_totales}"
         })
