@@ -155,6 +155,54 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </a>
+
+            <!-- Reset Tournament (only if there are teams or matches) -->
+            {% if teams_count > 0 or matches_count > 0 %}
+            <div x-data="{ showResetForm: false }" class="border-t pt-4">
+                <div class="flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group cursor-pointer"
+                     @click="showResetForm = !showResetForm">
+                    <div class="flex items-center">
+                        <div class="bg-red-500 text-white rounded-full p-2 mr-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-800">Resetear Torneo</div>
+                            <div class="text-sm text-gray-600">Eliminar todas las parejas y enfrentamientos</div>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" 
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              :d="showResetForm ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'"></path>
+                    </svg>
+                </div>
+                
+                <!-- Reset Form -->
+                <div x-show="showResetForm" x-transition class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg" x-data="adminAuth">
+                    <div class="text-center mb-4">
+                        <div class="text-red-600 font-semibold mb-2">⚠️ ¡ATENCIÓN!</div>
+                        <p class="text-sm text-red-700">
+                            Esta acción eliminará TODAS las parejas y enfrentamientos del torneo.
+                            <strong>No se puede deshacer.</strong>
+                        </p>
+                    </div>
+                    
+                    <form @submit.prevent="resetTournament($event)" class="space-y-3">
+                        <div class="text-center">
+                            <button type="submit" 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-semibold transition-colors">
+                                🗑️ Confirmar Reset del Torneo
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="resetResult" class="mt-3"></div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 

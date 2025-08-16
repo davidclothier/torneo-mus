@@ -394,6 +394,33 @@ def migrate_database(password: str = Form(...), db: Session = Depends(get_db)):
             "error": str(e)
         }, status_code=500)
 
+# Reset tournament endpoint
+@app.post("/admin/reset-tournament")
+def reset_tournament(password: str = Form(...), db: Session = Depends(get_db)):
+    if password != "gallegos":
+        return JSONResponse({"success": False, "error": "Invalid password"}, status_code=401)
+    
+    try:
+        # Delete all matches first (foreign key constraints)
+        db.query(Match).delete()
+        db.commit()
+        
+        # Delete all teams
+        db.query(Team).delete()
+        db.commit()
+        
+        return JSONResponse({
+            "success": True, 
+            "message": "Tournament reset successfully. All teams and matches have been deleted."
+        })
+        
+    except Exception as e:
+        db.rollback()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
 def ranking_page(request: Request, db: Session = Depends(get_db)):
