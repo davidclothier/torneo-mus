@@ -301,71 +301,62 @@ def health_check(db: Session = Depends(get_db)):
 # Migration page
 @app.get("/admin/migrate", response_class=HTMLResponse)
 def migrate_page(request: Request):
-    return HTMLResponse("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Database Migration</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 50px; }
-            .container { max-width: 500px; margin: 0 auto; }
-            input, button { padding: 10px; margin: 5px; width: 100%; }
-            .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
-            .success { background: #d4edda; color: #155724; }
-            .error { background: #f8d7da; color: #721c24; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Database Migration</h1>
-            <p>Este endpoint agrega las columnas <code>team1_games_won</code> y <code>team2_games_won</code> a la tabla matches.</p>
-            
-            <form id="migrateForm">
-                <input type="password" id="password" placeholder="Admin password" required>
-                <button type="submit">Migrate Database</button>
-            </form>
-            
-            <div id="result"></div>
-        </div>
+    return HTMLResponse("""<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        input, button { padding: 10px; margin: 5px; width: 100%; box-sizing: border-box; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Database Migration</h1>
+        <p>Este endpoint agrega las columnas team1_games_won y team2_games_won a la tabla matches.</p>
         
-        <script>
-            document.getElementById('migrateForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const password = document.getElementById('password').value;
-                const result = document.getElementById('result');
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('password', password);
-                    
-                    const response = await fetch('/admin/migrate-db', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        result.innerHTML = `<div class="result success">
-                            <strong>Success!</strong> ${data.message}
-                            ${data.added_columns ? '<br>Added columns: ' + data.added_columns.join(', ') : ''}
-                            ${data.existing_columns ? '<br>Existing columns: ' + data.existing_columns.join(', ') : ''}
-                        </div>`;
-                    } else {
-                        result.innerHTML = `<div class="result error">
-                            <strong>Error:</strong> ${data.error}
-                        </div>`;
-                    }
-                } catch (error) {
-                    result.innerHTML = `<div class="result error">
-                        <strong>Error:</strong> ${error.message}
-                    </div>`;
+        <form id="migrateForm">
+            <input type="password" id="password" placeholder="Admin password" required>
+            <button type="submit">Migrate Database</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        document.getElementById('migrateForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            const formData = new FormData();
+            formData.append('password', password);
+            
+            fetch('/admin/migrate-db', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    result.innerHTML = '<div class="result success"><strong>Success!</strong> ' + data.message + '</div>';
+                } else {
+                    result.innerHTML = '<div class="result error"><strong>Error:</strong> ' + data.error + '</div>';
                 }
+            })
+            .catch(function(error) {
+                result.innerHTML = '<div class="result error"><strong>Error:</strong> ' + error.message + '</div>';
             });
-        </script>
-    </body>
-    </html>
-    """)
+        });
+    </script>
+</body>
+</html>""")
 
 # Database migration endpoint
 @app.post("/admin/migrate-db")
