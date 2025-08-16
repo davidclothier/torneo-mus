@@ -241,6 +241,111 @@ def health_check(db: Session = Depends(get_db)):
             "database_url": os.getenv("DATABASE_URL", "sqlite:///./torneo_mus.db")[:50] + "..."
         }, status_code=500)
 
+# Migration page
+@app.get("/admin/migrate", response_class=HTMLResponse)
+def migrate_page(request: Request):
+    return HTMLResponse("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Database Migration</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 50px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            input, button { padding: 10px; margin: 5px; width: 100%; }
+            .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+            .success { background: #d4edda; color: #155724; }
+            .error { background: #f8d7da; color: #721c24; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Database Migration</h1>
+            <p>Este endpoint agrega las columnas <code>team1_games_won</code> y <code>team2_games_won</code> a la tabla matches.</p>
+            
+            <form id="migrateForm">
+                <input type="password" id="password" placeholder="Admin password" required>
+                <button type="submit">Migrate Database</button>
+            </form>
+            
+            <div id="result"></div>
+        </div>
+        
+        <script>
+            document.getElementById('migrateForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const password = document.getElementById('password').value;
+                const result = document.getElementById('result');
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('password', password);
+                    
+                    const response = await fetch('/admin/migrate-db', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        result.innerHTML = `<div class="result success">
+                            <strong>Success!</strong> ${data.message}
+                            ${data.added_columns ? '<br>Added columns: ' + data.added_columns.join(', ') : ''}
+                            ${data.existing_columns ? '<br>Existing columns: ' + data.existing_columns.join(', ') : ''}
+                        </div>`;
+                    } else {
+                        result.innerHTML = `<div class="result error">
+                            <strong>Error:</strong> ${data.error}
+                        </div>`;
+                    }
+                } catch (error) {
+                    result.innerHTML = `<div class="result error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>`;
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """)
+
+# Database migration endpoint
+@app.post("/admin/migrate-db")
+def migrate_database(password: str = Form(...), db: Session = Depends(get_db)):
+    if password != "gallegos":
+        return JSONResponse({"success": False, "error": "Invalid password"}, status_code=401)
+    
+    try:
+        # Check if migration is needed
+        result = db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'matches' AND column_name IN ('team1_games_won', 'team2_games_won')")
+        existing_columns = [row[0] for row in result.fetchall()]
+        
+        if len(existing_columns) == 2:
+            return JSONResponse({"success": True, "message": "Migration already completed", "existing_columns": existing_columns})
+        
+        # Add missing columns
+        if "team1_games_won" not in existing_columns:
+            db.execute("ALTER TABLE matches ADD COLUMN team1_games_won INTEGER DEFAULT 0")
+            
+        if "team2_games_won" not in existing_columns:
+            db.execute("ALTER TABLE matches ADD COLUMN team2_games_won INTEGER DEFAULT 0")
+        
+        db.commit()
+        
+        return JSONResponse({
+            "success": True, 
+            "message": "Migration completed successfully",
+            "added_columns": ["team1_games_won", "team2_games_won"]
+        })
+        
+    except Exception as e:
+        db.rollback()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
 def ranking_page(request: Request, db: Session = Depends(get_db)):
