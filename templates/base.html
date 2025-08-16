@@ -256,6 +256,30 @@
                 isValid: false,
                 isSubmitting: false,
                 
+                selectTeam1Games(games) {
+                    this.team1Games = games.toString();
+                    // Auto-calculate other team's games if this team won
+                    if (games === 3) {
+                        // If team1 won, team2 can have 0, 1, or 2 games
+                        if (!this.team2Games || this.team2Games === '3') {
+                            this.team2Games = '0'; // Default to 0 if not set or invalid
+                        }
+                    }
+                    this.validateSelection();
+                },
+                
+                selectTeam2Games(games) {
+                    this.team2Games = games.toString();
+                    // Auto-calculate other team's games if this team won
+                    if (games === 3) {
+                        // If team2 won, team1 can have 0, 1, or 2 games
+                        if (!this.team1Games || this.team1Games === '3') {
+                            this.team1Games = '0'; // Default to 0 if not set or invalid
+                        }
+                    }
+                    this.validateSelection();
+                },
+                
                 validateSelection() {
                     this.errorMessage = '';
                     
@@ -333,6 +357,30 @@
                 
                 init() {
                     // Run initial validation to show current state
+                    this.validateSelection();
+                },
+                
+                selectTeam1Games(games) {
+                    this.team1Games = games.toString();
+                    // Auto-calculate other team's games if this team won
+                    if (games === 3) {
+                        // If team1 won, team2 can have 0, 1, or 2 games
+                        if (!this.team2Games || this.team2Games === '3') {
+                            this.team2Games = '0'; // Default to 0 if not set or invalid
+                        }
+                    }
+                    this.validateSelection();
+                },
+                
+                selectTeam2Games(games) {
+                    this.team2Games = games.toString();
+                    // Auto-calculate other team's games if this team won
+                    if (games === 3) {
+                        // If team2 won, team1 can have 0, 1, or 2 games
+                        if (!this.team1Games || this.team1Games === '3') {
+                            this.team1Games = '0'; // Default to 0 if not set or invalid
+                        }
+                    }
                     this.validateSelection();
                 },
                 

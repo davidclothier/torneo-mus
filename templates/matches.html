@@ -119,15 +119,10 @@
                         <div class="flex-1">
                             <!-- Teams -->
                             <div class="text-center md:text-left">
-                                <div class="text-lg font-semibold text-gray-800 mb-1">
+                                <div class="text-lg font-semibold text-gray-800">
                                     <span :class="match.team1_wins >= 3 ? 'text-green-600 font-bold' : ''" x-text="match.team1_name"></span>
                                     <span class="mx-2 text-gray-400">vs</span>
                                     <span :class="match.team2_wins >= 3 ? 'text-green-600 font-bold' : ''" x-text="match.team2_name"></span>
-                                </div>
-                                <div class="text-sm text-gray-600">
-                                    <span x-text="match.team1_players"></span>
-                                    <span class="mx-1">⚡</span>
-                                    <span x-text="match.team2_players"></span>
                                 </div>
                             </div>
                         </div>
@@ -216,8 +211,6 @@ function matchFilters() {
                 team2_id: {{ match.team2_id }},
                 team1_name: "{{ match.team1.name }}",
                 team2_name: "{{ match.team2.name }}",
-                team1_players: "{{ match.team1.player1 }} & {{ match.team1.player2 }}",
-                team2_players: "{{ match.team2.player1 }} & {{ match.team2.player2 }}",
                 team1_wins: {{ match.team1_games_won }},
                 team2_wins: {{ match.team2_games_won }},
                 completed_date: {% if match.completed_at %}"{{ match.completed_at.strftime('%d/%m/%Y %H:%M') }}"{% else %}""{% endif %}
