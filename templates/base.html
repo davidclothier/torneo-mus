@@ -143,8 +143,11 @@
                 
                 async checkPassword() {
                     try {
+                        // Store password before clearing it
+                        const enteredPassword = this.password;
+                        
                         const formData = new FormData();
-                        formData.append('password', this.password);
+                        formData.append('password', enteredPassword);
                         
                         const response = await fetch('/admin/auth', {
                             method: 'POST',
@@ -157,7 +160,8 @@
                             this.showModal = false;
                             this.password = '';
                             if (this.pendingAction) {
-                                this.pendingAction();
+                                // Pass the validated password to the action
+                                this.pendingAction(enteredPassword);
                                 this.pendingAction = null;
                             }
                         } else {
@@ -197,7 +201,7 @@
                 requireAuth(event) {
                     event.preventDefault();
                     const form = event.target.closest('form');
-                    Alpine.store('auth').requireAuth(() => {
+                    Alpine.store('auth').requireAuth((validatedPassword) => {
                         form.submit();
                     });
                 },
@@ -210,11 +214,14 @@
                         return;
                     }
                     
+                    // Store reference to this for password capture
+                    const self = this;
+                    
                     // Require authentication, then execute reset
-                    Alpine.store('auth').requireAuth(async () => {
+                    Alpine.store('auth').requireAuth(async (validatedPassword) => {
                         try {
                             const formData = new FormData();
-                            formData.append('password', Alpine.store('auth').password);
+                            formData.append('password', validatedPassword);
                             
                             const response = await fetch('/admin/reset-tournament', {
                                 method: 'POST',
@@ -310,7 +317,7 @@
                         actualForm.submit();
                     };
                     
-                    Alpine.store('auth').requireAuth(submitForm);
+                    Alpine.store('auth').requireAuth((validatedPassword) => submitForm());
                 }
             }));
             
@@ -390,7 +397,7 @@
                         actualForm.submit();
                     };
                     
-                    Alpine.store('auth').requireAuth(submitForm);
+                    Alpine.store('auth').requireAuth((validatedPassword) => submitForm());
                 }
             }));
         });
