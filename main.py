@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import get_db, create_tables
 from models import Team, Match, MatchStatus
-from sqlalchemy import func
+from sqlalchemy import func, text
 import itertools
 import qrcode
 import io
@@ -375,7 +375,7 @@ def migrate_database(password: str = Form(...), db: Session = Depends(get_db)):
     
     try:
         # Check if migration is needed
-        result = db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'matches' AND column_name IN ('team1_games_won', 'team2_games_won')")
+        result = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'matches' AND column_name IN ('team1_games_won', 'team2_games_won')"))
         existing_columns = [row[0] for row in result.fetchall()]
         
         if len(existing_columns) == 2:
@@ -383,10 +383,10 @@ def migrate_database(password: str = Form(...), db: Session = Depends(get_db)):
         
         # Add missing columns
         if "team1_games_won" not in existing_columns:
-            db.execute("ALTER TABLE matches ADD COLUMN team1_games_won INTEGER DEFAULT 0")
+            db.execute(text("ALTER TABLE matches ADD COLUMN team1_games_won INTEGER DEFAULT 0"))
             
         if "team2_games_won" not in existing_columns:
-            db.execute("ALTER TABLE matches ADD COLUMN team2_games_won INTEGER DEFAULT 0")
+            db.execute(text("ALTER TABLE matches ADD COLUMN team2_games_won INTEGER DEFAULT 0"))
         
         db.commit()
         
