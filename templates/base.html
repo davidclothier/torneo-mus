@@ -261,6 +261,86 @@
                     Alpine.store('auth').requireAuth(submitForm);
                 }
             }));
+            
+            // Match edit form with validation (similar to result form but with pre-filled values)
+            Alpine.data('matchEditForm', (currentTeam1Games, currentTeam2Games) => ({
+                team1Games: currentTeam1Games.toString(),
+                team2Games: currentTeam2Games.toString(),
+                errorMessage: '',
+                validationMessage: '',
+                isValid: false,
+                isSubmitting: false,
+                showEditForm: false,
+                
+                init() {
+                    // Run initial validation to show current state
+                    this.validateSelection();
+                },
+                
+                validateSelection() {
+                    this.errorMessage = '';
+                    
+                    if (!this.team1Games || !this.team2Games) {
+                        this.validationMessage = '';
+                        this.isValid = false;
+                        return;
+                    }
+                    
+                    const t1 = parseInt(this.team1Games);
+                    const t2 = parseInt(this.team2Games);
+                    
+                    // Check for tie
+                    if (t1 === t2) {
+                        this.validationMessage = '❌ No puede haber empate en una vaca';
+                        this.isValid = false;
+                        return;
+                    }
+                    
+                    // Check if one team has 3 wins and the other has 0-2
+                    if ((t1 === 3 && t2 >= 0 && t2 <= 2) || (t2 === 3 && t1 >= 0 && t1 <= 2)) {
+                        this.validationMessage = `✅ Resultado válido: ${t1}-${t2}`;
+                        this.isValid = true;
+                    } else {
+                        this.validationMessage = '❌ Una pareja debe ganar exactamente 3 partidas, la otra entre 0-2';
+                        this.isValid = false;
+                    }
+                },
+                
+                validateAndSubmit() {
+                    if (!this.isValid) {
+                        this.errorMessage = 'Por favor, selecciona un resultado válido';
+                        return;
+                    }
+                    
+                    this.isSubmitting = true;
+                    
+                    // Check authentication first, then submit normally
+                    const submitForm = () => {
+                        // Create and submit form directly
+                        const actualForm = document.createElement('form');
+                        actualForm.method = 'POST';
+                        actualForm.action = window.location.pathname + '/edit-result';
+                        
+                        // Add form data
+                        const team1Input = document.createElement('input');
+                        team1Input.type = 'hidden';
+                        team1Input.name = 'team1_games';
+                        team1Input.value = this.team1Games;
+                        actualForm.appendChild(team1Input);
+                        
+                        const team2Input = document.createElement('input');
+                        team2Input.type = 'hidden';
+                        team2Input.name = 'team2_games';
+                        team2Input.value = this.team2Games;
+                        actualForm.appendChild(team2Input);
+                        
+                        document.body.appendChild(actualForm);
+                        actualForm.submit();
+                    };
+                    
+                    Alpine.store('auth').requireAuth(submitForm);
+                }
+            }));
         });
     </script>
 </body>

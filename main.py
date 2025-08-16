@@ -170,6 +170,39 @@ def set_match_result(
     db.commit()
     return RedirectResponse(url="/matches", status_code=303)
 
+# Edit match result (same logic but for editing)
+@app.post("/matches/{match_id}/edit-result")
+def edit_match_result(
+    match_id: int,
+    team1_games: int = Form(...),
+    team2_games: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    # Validate result (same validation as set_result)
+    if team1_games < 0 or team2_games < 0:
+        raise HTTPException(status_code=400, detail="Games won cannot be negative")
+    
+    if team1_games == team2_games:
+        raise HTTPException(status_code=400, detail="Cannot have a tie")
+    
+    if not ((team1_games == 3 and 0 <= team2_games <= 2) or 
+            (team2_games == 3 and 0 <= team1_games <= 2)):
+        raise HTTPException(status_code=400, detail="One team must win 3 games, the other 0-2")
+    
+    # Update match
+    match.team1_games_won = team1_games
+    match.team2_games_won = team2_games
+    match.status = MatchStatus.COMPLETED
+    match.winner_id = match.team1_id if team1_games == 3 else match.team2_id
+    match.completed_at = func.now()
+    
+    db.commit()
+    return RedirectResponse(url="/matches", status_code=303)
+
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
 def ranking_page(request: Request, db: Session = Depends(get_db)):
