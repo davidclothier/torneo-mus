@@ -236,15 +236,10 @@
                     
                     // Check authentication first, then submit normally
                     const submitForm = () => {
-                        // Update form values and submit normally (browser handles redirect)
-                        const form = document.querySelector('form[action*="/set-result"]');
-                        form.querySelector('[name="team1_games"]').value = this.team1Games;
-                        form.querySelector('[name="team2_games"]').value = this.team2Games;
-                        
-                        // Convert to normal form submission
+                        // Create and submit form directly
                         const actualForm = document.createElement('form');
                         actualForm.method = 'POST';
-                        actualForm.action = form.getAttribute('action') || form.action;
+                        actualForm.action = window.location.pathname + '/set-result';
                         
                         // Add form data
                         const team1Input = document.createElement('input');
