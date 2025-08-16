@@ -27,11 +27,50 @@ templates = Jinja2Templates(directory="templates")
 def startup():
     try:
         print(f"Starting up with DATABASE_URL: {os.getenv('DATABASE_URL', 'sqlite:///./torneo_mus.db')[:50]}...")
-        create_tables()
-        print("Database tables created successfully")
+        
+        # For PostgreSQL, we need to handle the case where columns might not exist yet
+        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./torneo_mus.db")
+        if DATABASE_URL.startswith("postgres"):
+            # Create base tables only, migration will add missing columns
+            from sqlalchemy import create_engine, text
+            engine = create_engine(DATABASE_URL)
+            
+            # Create tables without the new columns first
+            with engine.connect() as conn:
+                # Create basic tables structure
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS teams (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR NOT NULL,
+                        player1 VARCHAR NOT NULL,
+                        player2 VARCHAR NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS matches (
+                        id SERIAL PRIMARY KEY,
+                        team1_id INTEGER REFERENCES teams(id),
+                        team2_id INTEGER REFERENCES teams(id),
+                        status VARCHAR DEFAULT 'pending',
+                        winner_id INTEGER REFERENCES teams(id),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        completed_at TIMESTAMP
+                    )
+                """))
+                
+                conn.commit()
+                print("Base tables created for PostgreSQL")
+        else:
+            # For SQLite, use normal table creation
+            create_tables()
+            
+        print("Database startup completed successfully")
     except Exception as e:
         print(f"Error during startup: {e}")
-        raise
+        # Don't raise the error, let the app start so migration can run
+        print("Continuing startup despite error - migration may be needed")
 
 # Generate QR code
 def generate_qr_code(url: str) -> str:
@@ -50,32 +89,50 @@ def generate_qr_code(url: str) -> str:
 # Home page
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
-    teams_count = db.query(Team).count()
-    matches = db.query(Match).all()
-    matches_count = len(matches)
-    
-    # Calculate completed matches based on games won (3 or more wins)
-    completed_matches = 0
-    for match in matches:
-        if match.team1_games_won >= 3 or match.team2_games_won >= 3:
-            completed_matches += 1
-    
-    # Calculate progress percentage
-    progress_percentage = round((completed_matches / matches_count * 100) if matches_count > 0 else 0, 1)
-    
-    # Generate QR code for the app URL
-    app_url = "https://torneo-mus.onrender.com/"
-    qr_code_base64 = generate_qr_code(app_url)
-    
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "teams_count": teams_count,
-        "matches_count": matches_count,
-        "completed_matches": completed_matches,
-        "progress_percentage": progress_percentage,
-        "qr_code": qr_code_base64,
-        "app_url": app_url
-    })
+    try:
+        teams_count = db.query(Team).count()
+        matches = db.query(Match).all()
+        matches_count = len(matches)
+        
+        # Calculate completed matches based on games won (3 or more wins)
+        completed_matches = 0
+        try:
+            for match in matches:
+                if hasattr(match, 'team1_games_won') and hasattr(match, 'team2_games_won'):
+                    if match.team1_games_won >= 3 or match.team2_games_won >= 3:
+                        completed_matches += 1
+                elif match.status == MatchStatus.COMPLETED:
+                    # Fallback for old data structure
+                    completed_matches += 1
+        except:
+            # If there's an error accessing the columns, use status instead
+            completed_matches = db.query(Match).filter(Match.status == MatchStatus.COMPLETED).count()
+        
+        # Calculate progress percentage
+        progress_percentage = round((completed_matches / matches_count * 100) if matches_count > 0 else 0, 1)
+        
+        # Generate QR code for the app URL
+        app_url = "https://torneo-mus.onrender.com/"
+        qr_code_base64 = generate_qr_code(app_url)
+        
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "teams_count": teams_count,
+            "matches_count": matches_count,
+            "completed_matches": completed_matches,
+            "progress_percentage": progress_percentage,
+            "qr_code": qr_code_base64,
+            "app_url": app_url
+        })
+    except Exception as e:
+        # If database access fails completely, show error page
+        return HTMLResponse(f"""
+        <html><body>
+        <h1>Database Migration Required</h1>
+        <p>The application needs to be migrated. Please go to <a href="/admin/migrate">/admin/migrate</a></p>
+        <p>Error: {str(e)}</p>
+        </body></html>
+        """, status_code=500)
 
 # Teams routes
 @app.get("/teams", response_class=HTMLResponse)
