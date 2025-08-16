@@ -32,22 +32,23 @@
         </div>
         
         <div x-show="showForm" x-transition class="space-y-4">
-            <form method="post" action="/teams" class="space-y-4" x-data="adminAuth">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre de la Pareja
-                    </label>
-                    <input type="text" id="name" name="name" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
-                           placeholder="Los Invencibles">
-                </div>
+            <form method="post" action="/teams" class="space-y-4" x-data="{ 
+                player1: '', 
+                player2: '',
+                get teamName() {
+                    return this.player1 && this.player2 ? `${this.player1} & ${this.player2}` : '';
+                },
+                ...adminAuth 
+            }">
+                <!-- Hidden field for auto-generated name -->
+                <input type="hidden" name="name" :value="teamName">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="player1" class="block text-sm font-medium text-gray-700 mb-1">
                             Jugador 1
                         </label>
-                        <input type="text" id="player1" name="player1" required
+                        <input type="text" id="player1" name="player1" x-model="player1" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
                                placeholder="Juan">
                     </div>
@@ -56,14 +57,23 @@
                         <label for="player2" class="block text-sm font-medium text-gray-700 mb-1">
                             Jugador 2
                         </label>
-                        <input type="text" id="player2" name="player2" required
+                        <input type="text" id="player2" name="player2" x-model="player2" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500"
                                placeholder="Pedro">
                     </div>
                 </div>
                 
+                <!-- Preview of team name -->
+                <div x-show="teamName" x-transition class="p-3 bg-mus-50 border border-mus-200 rounded-lg">
+                    <div class="text-sm text-mus-800">
+                        <strong>Nombre de la pareja:</strong> <span x-text="teamName"></span>
+                    </div>
+                </div>
+                
                 <button type="submit" @click="requireAuth($event)"
-                        class="w-full md:w-auto bg-mus-600 hover:bg-mus-700 text-white px-6 py-2 rounded-md font-semibold transition-colors">
+                        :disabled="!teamName"
+                        :class="teamName ? 'bg-mus-600 hover:bg-mus-700' : 'bg-gray-400 cursor-not-allowed'"
+                        class="w-full md:w-auto text-white px-6 py-2 rounded-md font-semibold transition-colors">
                     Añadir Pareja
                 </button>
             </form>
