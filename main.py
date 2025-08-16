@@ -10,6 +10,7 @@ import itertools
 import qrcode
 import io
 import base64
+import os
 
 app = FastAPI(title="Torneo de Mus")
 
@@ -24,7 +25,13 @@ templates = Jinja2Templates(directory="templates")
 # Create tables on startup
 @app.on_event("startup")
 def startup():
-    create_tables()
+    try:
+        print(f"Starting up with DATABASE_URL: {os.getenv('DATABASE_URL', 'sqlite:///./torneo_mus.db')[:50]}...")
+        create_tables()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error during startup: {e}")
+        raise
 
 # Generate QR code
 def generate_qr_code(url: str) -> str:
@@ -210,6 +217,29 @@ def admin_auth(password: str = Form(...)):
         return JSONResponse({"success": True})
     else:
         return JSONResponse({"success": False}, status_code=401)
+
+# Health check endpoint
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Test database connection
+        teams_count = db.query(Team).count()
+        matches_count = db.query(Match).count()
+        
+        return JSONResponse({
+            "status": "healthy",
+            "database": "connected",
+            "teams_count": teams_count,
+            "matches_count": matches_count,
+            "database_url": os.getenv("DATABASE_URL", "sqlite:///./torneo_mus.db")[:50] + "..."
+        })
+    except Exception as e:
+        return JSONResponse({
+            "status": "error",
+            "database": "failed",
+            "error": str(e),
+            "database_url": os.getenv("DATABASE_URL", "sqlite:///./torneo_mus.db")[:50] + "..."
+        }, status_code=500)
 
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
