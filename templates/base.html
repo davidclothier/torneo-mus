@@ -226,7 +226,7 @@
                     }
                 },
                 
-                async validateAndSubmit() {
+                validateAndSubmit() {
                     if (!this.isValid) {
                         this.errorMessage = 'Por favor, selecciona un resultado válido';
                         return;
@@ -234,29 +234,33 @@
                     
                     this.isSubmitting = true;
                     
-                    // Check authentication first
-                    const submitForm = async () => {
-                        try {
-                            const form = document.querySelector('form[action*="/set-result"]');
-                            form.querySelector('[name="team1_games"]').value = this.team1Games;
-                            form.querySelector('[name="team2_games"]').value = this.team2Games;
-                            
-                            const response = await fetch(form.action, {
-                                method: 'POST',
-                                body: new FormData(form)
-                            });
-                            
-                            if (response.ok) {
-                                window.location.href = '/matches';
-                            } else {
-                                const data = await response.json().catch(() => ({}));
-                                this.errorMessage = data.detail || 'Error al registrar el resultado';
-                            }
-                        } catch (error) {
-                            this.errorMessage = 'Error de conexión. Inténtalo de nuevo.';
-                        } finally {
-                            this.isSubmitting = false;
-                        }
+                    // Check authentication first, then submit normally
+                    const submitForm = () => {
+                        // Update form values and submit normally (browser handles redirect)
+                        const form = document.querySelector('form[action*="/set-result"]');
+                        form.querySelector('[name="team1_games"]').value = this.team1Games;
+                        form.querySelector('[name="team2_games"]').value = this.team2Games;
+                        
+                        // Convert to normal form submission
+                        const actualForm = document.createElement('form');
+                        actualForm.method = 'POST';
+                        actualForm.action = form.getAttribute('action') || form.action;
+                        
+                        // Add form data
+                        const team1Input = document.createElement('input');
+                        team1Input.type = 'hidden';
+                        team1Input.name = 'team1_games';
+                        team1Input.value = this.team1Games;
+                        actualForm.appendChild(team1Input);
+                        
+                        const team2Input = document.createElement('input');
+                        team2Input.type = 'hidden';
+                        team2Input.name = 'team2_games';
+                        team2Input.value = this.team2Games;
+                        actualForm.appendChild(team2Input);
+                        
+                        document.body.appendChild(actualForm);
+                        actualForm.submit();
                     };
                     
                     Alpine.store('auth').requireAuth(submitForm);
