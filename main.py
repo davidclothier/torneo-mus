@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import get_db, create_tables
-from models import Team, Match, Game, MatchStatus
+from models import Team, Match, MatchStatus
 from sqlalchemy import func
 import itertools
 import qrcode
@@ -50,16 +50,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     # Calculate completed matches based on games won (3 or more wins)
     completed_matches = 0
     for match in matches:
-        team1_wins = db.query(Game).filter(
-            Game.match_id == match.id,
-            Game.winner_id == match.team1_id
-        ).count()
-        team2_wins = db.query(Game).filter(
-            Game.match_id == match.id,
-            Game.winner_id == match.team2_id
-        ).count()
-        
-        if team1_wins >= 3 or team2_wins >= 3:
+        if match.team1_games_won >= 3 or match.team2_games_won >= 3:
             completed_matches += 1
     
     # Calculate progress percentage
@@ -140,177 +131,44 @@ def match_detail(match_id: int, request: Request, db: Session = Depends(get_db))
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     
-    games = db.query(Game).filter(Game.match_id == match_id).order_by(Game.game_number).all()
-    
     return templates.TemplateResponse("match_detail.html", {
         "request": request,
-        "match": match,
-        "games": games
+        "match": match
     })
 
-# Add game result
-@app.post("/matches/{match_id}/add-game")
-def add_game_result(
+# Set match result (direct final score)
+@app.post("/matches/{match_id}/set-result")
+def set_match_result(
     match_id: int,
-    team1_score: int = Form(...),
-    team2_score: int = Form(...),
+    team1_games: int = Form(...),
+    team2_games: int = Form(...),
     db: Session = Depends(get_db)
 ):
     match = db.query(Match).filter(Match.id == match_id).first()
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     
-    # Allow adding games even if match appears completed (might change with new game)
+    # Validate result
+    if team1_games < 0 or team2_games < 0:
+        raise HTTPException(status_code=400, detail="Games won cannot be negative")
     
-    # Validate scores
-    if team1_score < 0 or team2_score < 0:
-        raise HTTPException(status_code=400, detail="Scores cannot be negative")
+    if team1_games == team2_games:
+        raise HTTPException(status_code=400, detail="Cannot have a tie")
     
-    if team1_score != 40 and team2_score != 40:
-        raise HTTPException(status_code=400, detail="One team must reach 40 points")
+    # One team must have 3 wins, the other between 0-2
+    if not ((team1_games == 3 and 0 <= team2_games <= 2) or 
+            (team2_games == 3 and 0 <= team1_games <= 2)):
+        raise HTTPException(status_code=400, detail="One team must win 3 games, the other 0-2")
     
-    if team1_score == 40 and team2_score == 40:
-        raise HTTPException(status_code=400, detail="Both teams cannot reach 40 points")
-    
-    # Update match status
-    if match.status == MatchStatus.PENDING:
-        match.status = MatchStatus.IN_PROGRESS
-    
-    # Determine winner
-    winner_id = match.team1_id if team1_score == 40 else match.team2_id
-    
-    # Get current game number
-    current_games = db.query(Game).filter(Game.match_id == match_id).count()
-    game_number = current_games + 1
-    
-    # Create new game
-    game = Game(
-        match_id=match_id,
-        team1_score=team1_score,
-        team2_score=team2_score,
-        winner_id=winner_id,
-        game_number=game_number
-    )
-    db.add(game)
-    
-    # Check if match is completed (first to 3 wins)
-    team1_wins = db.query(Game).filter(
-        Game.match_id == match_id,
-        Game.winner_id == match.team1_id
-    ).count()
-    
-    team2_wins = db.query(Game).filter(
-        Game.match_id == match_id,
-        Game.winner_id == match.team2_id
-    ).count()
-    
-    # Add current game win
-    if winner_id == match.team1_id:
-        team1_wins += 1
-    else:
-        team2_wins += 1
-    
-    # Check if someone reached 3 wins
-    if team1_wins >= 3:
-        match.status = MatchStatus.COMPLETED
-        match.winner_id = match.team1_id
-        match.completed_at = func.now()
-    elif team2_wins >= 3:
-        match.status = MatchStatus.COMPLETED
-        match.winner_id = match.team2_id
-        match.completed_at = func.now()
+    # Update match
+    match.team1_games_won = team1_games
+    match.team2_games_won = team2_games
+    match.status = MatchStatus.COMPLETED
+    match.winner_id = match.team1_id if team1_games == 3 else match.team2_id
+    match.completed_at = func.now()
     
     db.commit()
-    return RedirectResponse(url=f"/matches/{match_id}", status_code=303)
-
-# Edit game result
-@app.post("/matches/{match_id}/edit-game/{game_id}")
-def edit_game_result(
-    match_id: int,
-    game_id: int,
-    team1_score: int = Form(...),
-    team2_score: int = Form(...),
-    db: Session = Depends(get_db)
-):
-    match = db.query(Match).filter(Match.id == match_id).first()
-    if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
-    
-    game = db.query(Game).filter(Game.id == game_id, Game.match_id == match_id).first()
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    
-    # Validate scores
-    if team1_score < 0 or team2_score < 0:
-        raise HTTPException(status_code=400, detail="Scores cannot be negative")
-    
-    if team1_score != 40 and team2_score != 40:
-        raise HTTPException(status_code=400, detail="One team must reach 40 points")
-    
-    if team1_score == 40 and team2_score == 40:
-        raise HTTPException(status_code=400, detail="Both teams cannot reach 40 points")
-    
-    # Update game
-    game.team1_score = team1_score
-    game.team2_score = team2_score
-    game.winner_id = match.team1_id if team1_score == 40 else match.team2_id
-    
-    # Recalculate match status
-    recalculate_match_status(match, db)
-    
-    db.commit()
-    return RedirectResponse(url=f"/matches/{match_id}", status_code=303)
-
-# Delete game result
-@app.post("/matches/{match_id}/delete-game/{game_id}")
-def delete_game_result(
-    match_id: int,
-    game_id: int,
-    db: Session = Depends(get_db)
-):
-    match = db.query(Match).filter(Match.id == match_id).first()
-    if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
-    
-    game = db.query(Game).filter(Game.id == game_id, Game.match_id == match_id).first()
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    
-    db.delete(game)
-    
-    # Recalculate match status
-    recalculate_match_status(match, db)
-    
-    db.commit()
-    return RedirectResponse(url=f"/matches/{match_id}", status_code=303)
-
-def recalculate_match_status(match: Match, db: Session):
-    """Recalculate match status based on current games"""
-    games = db.query(Game).filter(Game.match_id == match.id).all()
-    
-    if not games:
-        match.status = MatchStatus.PENDING
-        match.winner_id = None
-        match.completed_at = None
-        return
-    
-    # Count wins for each team
-    team1_wins = sum(1 for game in games if game.winner_id == match.team1_id)
-    team2_wins = sum(1 for game in games if game.winner_id == match.team2_id)
-    
-    # Update match status
-    if team1_wins >= 3:
-        match.status = MatchStatus.COMPLETED
-        match.winner_id = match.team1_id
-        match.completed_at = func.now()
-    elif team2_wins >= 3:
-        match.status = MatchStatus.COMPLETED
-        match.winner_id = match.team2_id
-        match.completed_at = func.now()
-    else:
-        match.status = MatchStatus.IN_PROGRESS
-        match.winner_id = None
-        match.completed_at = None
+    return RedirectResponse(url="/matches", status_code=303)
 
 # Ranking page
 @app.get("/ranking", response_class=HTMLResponse)
@@ -326,29 +184,27 @@ def ranking_page(request: Request, db: Session = Depends(get_db)):
             Match.status == MatchStatus.COMPLETED
         ).count()
         
-        # Partidas ganadas y perdidas
-        partidas_ganadas = db.query(Game).filter(Game.winner_id == team.id).count()
-        partidas_perdidas = db.query(Game).filter(
-            ((Game.match.has(Match.team1_id == team.id)) | 
-             (Game.match.has(Match.team2_id == team.id))),
-            Game.winner_id != team.id
-        ).count()
+        # Partidas ganadas y perdidas (en enfrentamientos completados)
+        partidas_ganadas = 0
+        partidas_perdidas = 0
         
-        # Puntos a favor y en contra
-        puntos_favor = 0
-        puntos_contra = 0
+        # Matches where team was team1
+        matches_as_team1 = db.query(Match).filter(
+            Match.team1_id == team.id,
+            Match.status == MatchStatus.COMPLETED
+        ).all()
+        for match in matches_as_team1:
+            partidas_ganadas += match.team1_games_won
+            partidas_perdidas += match.team2_games_won
         
-        # Games where team was team1
-        games_as_team1 = db.query(Game).join(Match).filter(Match.team1_id == team.id).all()
-        for game in games_as_team1:
-            puntos_favor += game.team1_score
-            puntos_contra += game.team2_score
-        
-        # Games where team was team2
-        games_as_team2 = db.query(Game).join(Match).filter(Match.team2_id == team.id).all()
-        for game in games_as_team2:
-            puntos_favor += game.team2_score
-            puntos_contra += game.team1_score
+        # Matches where team was team2
+        matches_as_team2 = db.query(Match).filter(
+            Match.team2_id == team.id,
+            Match.status == MatchStatus.COMPLETED
+        ).all()
+        for match in matches_as_team2:
+            partidas_ganadas += match.team2_games_won
+            partidas_perdidas += match.team1_games_won
         
         # Enfrentamientos jugados
         enfrentamientos_jugados = db.query(Match).filter(
@@ -364,13 +220,12 @@ def ranking_page(request: Request, db: Session = Depends(get_db)):
             "team": team,
             "vacas_ganadas": vacas_ganadas,
             "diferencia_partidas": partidas_ganadas - partidas_perdidas,
-            "diferencia_puntos": puntos_favor - puntos_contra,
             "enfrentamientos": f"{enfrentamientos_jugados}/{enfrentamientos_totales}"
         })
     
-    # Sort by ranking criteria
+    # Sort by ranking criteria (removed diferencia_puntos)
     ranking_data.sort(
-        key=lambda x: (x["vacas_ganadas"], x["diferencia_partidas"], x["diferencia_puntos"]),
+        key=lambda x: (x["vacas_ganadas"], x["diferencia_partidas"]),
         reverse=True
     )
     

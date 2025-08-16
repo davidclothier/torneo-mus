@@ -87,9 +87,7 @@
     {% set completed_count = namespace(value=0) %}
     {% set pending_count = namespace(value=0) %}
     {% for match in matches %}
-        {% set team1_wins = match.games|selectattr("winner_id", "equalto", match.team1_id)|list|length %}
-        {% set team2_wins = match.games|selectattr("winner_id", "equalto", match.team2_id)|list|length %}
-        {% if team1_wins >= 3 or team2_wins >= 3 %}
+        {% if match.team1_games_won >= 3 or match.team2_games_won >= 3 %}
             {% set completed_count.value = completed_count.value + 1 %}
         {% else %}
             {% set pending_count.value = pending_count.value + 1 %}
@@ -152,27 +150,12 @@
                     </div>
 
                     <!-- Games Summary -->
-                    <div x-show="match.games_count > 0" class="mb-3">
+                    <div x-show="match.team1_wins > 0 || match.team2_wins > 0" class="mb-3">
                         <div class="text-center mb-2">
                             <span class="text-lg font-bold" :class="match.team1_wins > match.team2_wins ? 'text-green-600' : ''" x-text="match.team1_wins"></span>
                             <span class="mx-2 text-gray-400">-</span>
                             <span class="text-lg font-bold" :class="match.team2_wins > match.team1_wins ? 'text-green-600' : ''" x-text="match.team2_wins"></span>
-                            <span class="ml-2 text-sm text-gray-600">(partidas)</span>
-                        </div>
-                        
-                        <!-- Games dots -->
-                        <div class="flex justify-center space-x-1">
-                            <template x-for="game in match.games_dots" :key="game.number">
-                                <div class="w-3 h-3 rounded-full" 
-                                     :class="game.winner === 'team1' ? 'bg-blue-500' : 'bg-red-500'"
-                                     :title="'Partida ' + game.number + ': ' + game.score">
-                                </div>
-                            </template>
-                            
-                            <!-- Empty slots -->
-                            <template x-for="i in (3 - match.games_count)" :key="'empty-' + i">
-                                <div class="w-3 h-3 rounded-full bg-gray-200"></div>
-                            </template>
+                            <span class="ml-2 text-sm text-gray-600">(partidas ganadas)</span>
                         </div>
                     </div>
 
@@ -235,24 +218,9 @@ function matchFilters() {
                 team2_name: "{{ match.team2.name }}",
                 team1_players: "{{ match.team1.player1 }} & {{ match.team1.player2 }}",
                 team2_players: "{{ match.team2.player1 }} & {{ match.team2.player2 }}",
-                team1_wins: {{ match.games|selectattr("winner_id", "equalto", match.team1_id)|list|length }},
-                team2_wins: {{ match.games|selectattr("winner_id", "equalto", match.team2_id)|list|length }},
-                games_count: {{ match.games|length }},
-                games_dots: [
-                    {% for game in match.games %}
-                    {
-                        number: {{ game.game_number }},
-                        winner: {% if game.winner_id == match.team1_id %}"team1"{% else %}"team2"{% endif %},
-                        score: "{{ game.team1_score }}-{{ game.team2_score }}"
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ],
-                completed_date: {% if match.games %}
-                    {% set last_game = match.games|last %}
-                    "{{ last_game.created_at.strftime('%d/%m/%Y %H:%M') if last_game else '' }}"
-                {% else %}
-                    ""
-                {% endif %}
+                team1_wins: {{ match.team1_games_won }},
+                team2_wins: {{ match.team2_games_won }},
+                completed_date: {% if match.completed_at %}"{{ match.completed_at.strftime('%d/%m/%Y %H:%M') }}"{% else %}""{% endif %}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ],

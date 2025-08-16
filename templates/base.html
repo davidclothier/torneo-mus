@@ -187,6 +187,81 @@
                     });
                 }
             }));
+            
+            // Match result form with validation
+            Alpine.data('matchResultForm', () => ({
+                team1Games: '',
+                team2Games: '',
+                errorMessage: '',
+                validationMessage: '',
+                isValid: false,
+                isSubmitting: false,
+                
+                validateSelection() {
+                    this.errorMessage = '';
+                    
+                    if (!this.team1Games || !this.team2Games) {
+                        this.validationMessage = '';
+                        this.isValid = false;
+                        return;
+                    }
+                    
+                    const t1 = parseInt(this.team1Games);
+                    const t2 = parseInt(this.team2Games);
+                    
+                    // Check for tie
+                    if (t1 === t2) {
+                        this.validationMessage = '❌ No puede haber empate en una vaca';
+                        this.isValid = false;
+                        return;
+                    }
+                    
+                    // Check if one team has 3 wins and the other has 0-2
+                    if ((t1 === 3 && t2 >= 0 && t2 <= 2) || (t2 === 3 && t1 >= 0 && t1 <= 2)) {
+                        this.validationMessage = `✅ Resultado válido: ${t1}-${t2}`;
+                        this.isValid = true;
+                    } else {
+                        this.validationMessage = '❌ Una pareja debe ganar exactamente 3 partidas, la otra entre 0-2';
+                        this.isValid = false;
+                    }
+                },
+                
+                async validateAndSubmit() {
+                    if (!this.isValid) {
+                        this.errorMessage = 'Por favor, selecciona un resultado válido';
+                        return;
+                    }
+                    
+                    this.isSubmitting = true;
+                    
+                    // Check authentication first
+                    const submitForm = async () => {
+                        try {
+                            const form = document.querySelector('form[action*="/set-result"]');
+                            form.querySelector('[name="team1_games"]').value = this.team1Games;
+                            form.querySelector('[name="team2_games"]').value = this.team2Games;
+                            
+                            const response = await fetch(form.action, {
+                                method: 'POST',
+                                body: new FormData(form)
+                            });
+                            
+                            if (response.ok) {
+                                window.location.href = '/matches';
+                            } else {
+                                const data = await response.json().catch(() => ({}));
+                                this.errorMessage = data.detail || 'Error al registrar el resultado';
+                            }
+                        } catch (error) {
+                            this.errorMessage = 'Error de conexión. Inténtalo de nuevo.';
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    };
+                    
+                    Alpine.store('auth').requireAuth(submitForm);
+                }
+            }));
         });
     </script>
 </body>

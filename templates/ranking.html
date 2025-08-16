@@ -35,9 +35,6 @@
                             Dif. Partidas
                         </th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
-                            Dif. Puntos
-                        </th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                             Enfrentamientos
                         </th>
                     </tr>
@@ -90,12 +87,6 @@
                             </span>
                         </td>
                         
-                        <!-- Diferencia Puntos -->
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <span class="text-lg font-semibold {% if entry.diferencia_puntos > 0 %}text-green-600{% elif entry.diferencia_puntos < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
-                                {% if entry.diferencia_puntos > 0 %}+{% endif %}{{ entry.diferencia_puntos }}
-                            </span>
-                        </td>
                         
                         <!-- Enfrentamientos -->
                         <td class="px-6 py-4 whitespace-nowrap text-center">

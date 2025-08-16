@@ -3,88 +3,12 @@
 {% block title %}{{ match.team1.name }} vs {{ match.team2.name }} - Torneo de Mus{% endblock %}
 
 {% block content %}
-<!-- Calculate wins early -->
-{% set team1_wins = games|selectattr("winner_id", "equalto", match.team1_id)|list|length %}
-{% set team2_wins = games|selectattr("winner_id", "equalto", match.team2_id)|list|length %}
-<div class="max-w-4xl mx-auto" 
-     x-data="{ 
-        team1Score: '', 
-        team2Score: '',
-        errorMessage: '',
-        isSubmitting: false,
-        
-        validateScore(team, score) {
-            this.errorMessage = '';
-            if (score === '40') {
-                if (team === 1) this.team2Score = '';
-                else this.team1Score = '';
-            }
-        },
-        
-        validateForm() {
-            this.errorMessage = '';
-            
-            if (!this.team1Score || !this.team2Score) {
-                this.errorMessage = 'Debes introducir ambas puntuaciones';
-                return false;
-            }
-            
-            const score1 = parseInt(this.team1Score);
-            const score2 = parseInt(this.team2Score);
-            
-            if (score1 < 0 || score2 < 0) {
-                this.errorMessage = 'Las puntuaciones no pueden ser negativas';
-                return false;
-            }
-            
-            if (score1 !== 40 && score2 !== 40) {
-                this.errorMessage = 'Una pareja debe llegar a 40 puntos para ganar la partida';
-                return false;
-            }
-            
-            if (score1 === 40 && score2 === 40) {
-                this.errorMessage = 'Ambas parejas no pueden llegar a 40 puntos';
-                return false;
-            }
-            
-            return true;
-        },
-        
-        async submitForm(formElement) {
-            if (!this.validateForm()) {
-                return;
-            }
-            
-            this.isSubmitting = true;
-            this.errorMessage = '';
-            
-            try {
-                const response = await fetch(formElement.action, {
-                    method: 'POST',
-                    body: new FormData(formElement)
-                });
-                
-                if (response.ok) {
-                    // Redirect if successful
-                    window.location.reload();
-                } else {
-                    // Handle error response
-                    const errorData = await response.json();
-                    this.errorMessage = errorData.detail || 'Error al registrar el resultado';
-                }
-            } catch (error) {
-                this.errorMessage = 'Error de conexión. Inténtalo de nuevo.';
-            } finally {
-                this.isSubmitting = false;
-            }
-        }
-     }">
-    
+<div class="max-w-4xl mx-auto">
     <!-- Back Button -->
-    <div class="mb-4">
+    <div class="mb-6">
         <a href="/matches" 
-           class="inline-flex items-center text-mus-600 hover:text-mus-700 font-medium">
-            <svg class="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           class="inline-flex items-center text-mus-600 hover:text-mus-700 transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
             Volver a Enfrentamientos
@@ -94,288 +18,179 @@
     <!-- Match Header -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <div class="text-center">
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-                {{ match.team1.name }} 
-                <span class="text-gray-400 mx-4">vs</span> 
-                {{ match.team2.name }}
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
+                🥊 Enfrentamiento
             </h2>
             
-            <div class="text-gray-600 mb-4">
-                <span class="font-medium">{{ match.team1.player1 }}</span> & 
-                <span class="font-medium">{{ match.team1.player2 }}</span>
-                <span class="mx-3 text-gray-400">⚡</span>
-                <span class="font-medium">{{ match.team2.player1 }}</span> & 
-                <span class="font-medium">{{ match.team2.player2 }}</span>
+            <!-- Teams vs -->
+            <div class="flex items-center justify-center space-x-6 mb-4">
+                <div class="text-center">
+                    <h3 class="text-xl font-bold text-mus-600">{{ match.team1.name }}</h3>
+                    <p class="text-gray-600">
+                        <span class="font-medium">{{ match.team1.player1 }}</span> & 
+                        <span class="font-medium">{{ match.team1.player2 }}</span>
+                    </p>
+                </div>
+                
+                <div class="text-2xl font-bold text-gray-400">VS</div>
+                
+                <div class="text-center">
+                    <h3 class="text-xl font-bold text-blue-600">{{ match.team2.name }}</h3>
+                    <p class="text-gray-600">
+                        <span class="font-medium">{{ match.team2.player1 }}</span> & 
+                        <span class="font-medium">{{ match.team2.player2 }}</span>
+                    </p>
+                </div>
             </div>
 
-            <!-- Winner announcement only when completed -->
-            {% if team1_wins >= 3 %}
+            <!-- Status -->
+            {% if match.status.value == 'completed' %}
                 <div class="text-lg text-green-600 font-bold">
-                    🎉 ¡{{ match.team1.name }} ganó la vaca!
+                    🎉 ¡{{ match.winner.name }} ganó la vaca {{ match.winner.id == match.team1_id and match.team1_games_won or match.team2_games_won }}-{{ match.winner.id == match.team1_id and match.team2_games_won or match.team1_games_won }}!
                 </div>
-            {% elif team2_wins >= 3 %}
-                <div class="text-lg text-green-600 font-bold">
-                    🎉 ¡{{ match.team2.name }} ganó la vaca!
+            {% elif match.status.value == 'in_progress' %}
+                <div class="text-lg text-orange-600 font-bold">
+                    ⚡ En progreso
+                </div>
+            {% else %}
+                <div class="text-lg text-gray-600 font-bold">
+                    ⏳ Pendiente
                 </div>
             {% endif %}
         </div>
 
         <!-- Score Summary -->
-        
+        {% if match.team1_games_won > 0 or match.team2_games_won > 0 %}
         <div class="text-center mt-4">
             <div class="text-3xl font-bold">
-                <span class="{% if team1_wins > team2_wins %}text-green-600{% endif %}">{{ team1_wins }}</span>
-                <span class="mx-4 text-gray-400">-</span>
-                <span class="{% if team2_wins > team1_wins %}text-green-600{% endif %}">{{ team2_wins }}</span>
+                <span class="{% if match.team1_games_won > match.team2_games_won %}text-green-600{% endif %}">{{ match.team1_games_won }}</span>
+                <span class="mx-2 text-gray-400">-</span>
+                <span class="{% if match.team2_games_won > match.team1_games_won %}text-green-600{% endif %}">{{ match.team2_games_won }}</span>
             </div>
-            <div class="text-sm text-gray-600">Partidas ganadas</div>
+            <div class="text-sm text-gray-600 mt-1">partidas ganadas</div>
         </div>
+        {% endif %}
     </div>
 
-    <!-- Games History -->
-    {% if games %}
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Historial de Partidas</h3>
+    <!-- Set Result Form (only if not completed) -->
+    {% if match.status.value != 'completed' %}
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-data="matchResultForm()">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">⚽ Registrar Resultado de la Vaca</h3>
         
-        <div class="space-y-3">
-            {% for game in games %}
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg" 
-                 x-data="{ editing: false, team1Score: {{ game.team1_score }}, team2Score: {{ game.team2_score }} }">
-                
-                <!-- Normal view -->
-                <div x-show="!editing" class="flex items-center justify-between w-full">
-                    <div class="flex items-center">
-                        <span class="bg-mus-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
-                            {{ game.game_number }}
-                        </span>
-                        <span class="text-sm text-gray-600">Partida {{ game.game_number }}</span>
-                    </div>
-                    
-                    <div class="text-center">
-                        <div class="text-lg font-bold">
-                            <span class="{% if game.winner_id == match.team1_id %}text-green-600{% endif %}">
-                                {{ game.team1_score }}
-                            </span>
-                            <span class="mx-2 text-gray-400">-</span>
-                            <span class="{% if game.winner_id == match.team2_id %}text-green-600{% endif %}">
-                                {{ game.team2_score }}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center space-x-2">
-                        <div class="text-sm text-gray-600 mr-2">
-                            {% if game.winner_id == match.team1_id %}
-                                🏆 {{ match.team1.name }}
-                            {% else %}
-                                🏆 {{ match.team2.name }}
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Edit/Delete buttons -->
-                        <button @click="editing = true" 
-                                class="text-blue-600 hover:text-blue-800 p-1" 
-                                title="Editar">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                        </button>
-                        
-                        <form method="post" action="/matches/{{ match.id }}/delete-game/{{ game.id }}" 
-                              class="inline"
-                              x-on:submit="(e) => { 
-                                  e.preventDefault(); 
-                                  if (confirm('¿Eliminar esta partida?')) {
-                                      $store.auth.requireAuth(() => e.target.submit()); 
-                                  }
-                              }">
-                            <button type="submit" 
-                                    class="text-red-600 hover:text-red-800 p-1" 
-                                    title="Eliminar">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
+        <!-- Error message -->
+        <div x-show="errorMessage" x-transition class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
                 </div>
-                
-                <!-- Edit view -->
-                <div x-show="editing" class="w-full">
-                    <form method="post" action="/matches/{{ match.id }}/edit-game/{{ game.id }}"
-                          x-on:submit="(e) => { 
-                              e.preventDefault(); 
-                              $store.auth.requireAuth(() => e.target.submit()); 
-                          }">
-                        <div class="grid grid-cols-5 gap-4 items-center">
-                            <div class="text-sm text-gray-600 text-center">
-                                {{ match.team1.name }}
-                            </div>
-                            <div>
-                                <input type="number" name="team1_score" x-model="team1Score" 
-                                       min="0" max="40" required
-                                       class="w-full text-center font-bold px-2 py-1 border rounded">
-                            </div>
-                            <div class="text-center text-gray-400">-</div>
-                            <div>
-                                <input type="number" name="team2_score" x-model="team2Score" 
-                                       min="0" max="40" required
-                                       class="w-full text-center font-bold px-2 py-1 border rounded">
-                            </div>
-                            <div class="text-sm text-gray-600 text-center">
-                                {{ match.team2.name }}
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-center space-x-2 mt-3">
-                            <button type="submit" 
-                                    class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
-                                💾 Guardar
-                            </button>
-                            <button type="button" @click="editing = false; team1Score = {{ game.team1_score }}; team2Score = {{ game.team2_score }}"
-                                    class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700">
-                                ❌ Cancelar
-                            </button>
-                        </div>
-                    </form>
+                <div class="ml-3">
+                    <p class="text-sm text-red-800" x-text="errorMessage"></p>
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Match completed message -->
-    {% if team1_wins >= 3 or team2_wins >= 3 %}
-    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-        <div class="text-center">
-            <div class="mb-4">
-                <svg class="mx-auto h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </div>
-            <h3 class="text-xl font-bold text-green-800 mb-2">
-                🏆 ¡Vaca Completada!
-            </h3>
-            <p class="text-green-700 mb-4">
-                {% if team1_wins >= 3 %}
-                    <strong>{{ match.team1.name }}</strong> ha ganado esta vaca
-                {% else %}
-                    <strong>{{ match.team2.name }}</strong> ha ganado esta vaca
-                {% endif %}
-            </p>
-            <div class="bg-green-100 rounded-lg p-4 mb-4">
-                <p class="text-sm text-green-800">
-                    💡 <strong>Tip:</strong> Aunque la vaca esté completada, puedes editar o eliminar partidas individuales. 
-                    Si los cambios hacen que ninguna pareja tenga 3 victorias, la vaca se reabrirá automáticamente.
-                </p>
+                <button @click="errorMessage = ''" class="ml-auto text-red-400 hover:text-red-600">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
             </div>
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Add Game Form (Only if no team has won yet) -->
-    {% if team1_wins < 3 and team2_wins < 3 %}
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">
-            ⚽ Registrar Resultado - Partida {{ games|length + 1 }}
-        </h3>
-        
-        <form method="post" action="/matches/{{ match.id }}/add-game" 
-              class="space-y-6"
-              x-on:submit="(e) => { 
-                  e.preventDefault(); 
-                  $store.auth.requireAuth(() => submitForm(e.target)); 
-              }">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Team 1 Score -->
-                <div class="text-center p-4 border-2 border-gray-200 rounded-lg">
-                    <h4 class="font-semibold text-gray-800 mb-2">{{ match.team1.name }}</h4>
-                    <p class="text-sm text-gray-600 mb-3">{{ match.team1.player1 }} & {{ match.team1.player2 }}</p>
-                    
-                    <label for="team1_score" class="block text-sm font-medium text-gray-700 mb-2">
-                        Puntos
+        <form @submit.prevent="validateAndSubmit()" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="team1_games" class="block text-sm font-medium text-gray-700 mb-2">
+                        Partidas ganadas por {{ match.team1.name }}
                     </label>
-                    <input type="number" 
-                           id="team1_score" 
-                           name="team1_score" 
-                           min="0" 
-                           max="40"
-                           x-model="team1Score"
-                           @input="validateScore(1, team1Score)"
-                           required
-                           :class="errorMessage && !validateForm() ? 'border-red-500' : 'border-gray-300'"
-                           class="w-24 text-center text-2xl font-bold px-3 py-2 border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500">
+                    <select x-model="team1Games" id="team1_games" name="team1_games" required
+                            @change="validateSelection()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500">
+                        <option value="">Seleccionar</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
                 </div>
                 
-                <!-- Team 2 Score -->
-                <div class="text-center p-4 border-2 border-gray-200 rounded-lg">
-                    <h4 class="font-semibold text-gray-800 mb-2">{{ match.team2.name }}</h4>
-                    <p class="text-sm text-gray-600 mb-3">{{ match.team2.player1 }} & {{ match.team2.player2 }}</p>
-                    
-                    <label for="team2_score" class="block text-sm font-medium text-gray-700 mb-2">
-                        Puntos
+                <div>
+                    <label for="team2_games" class="block text-sm font-medium text-gray-700 mb-2">
+                        Partidas ganadas por {{ match.team2.name }}
                     </label>
-                    <input type="number" 
-                           id="team2_score" 
-                           name="team2_score" 
-                           min="0" 
-                           max="40"
-                           x-model="team2Score"
-                           @input="validateScore(2, team2Score)"
-                           required
-                           :class="errorMessage && !validateForm() ? 'border-red-500' : 'border-gray-300'"
-                           class="w-24 text-center text-2xl font-bold px-3 py-2 border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500">
+                    <select x-model="team2Games" id="team2_games" name="team2_games" required
+                            @change="validateSelection()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-mus-500 focus:border-mus-500">
+                        <option value="">Seleccionar</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
                 </div>
             </div>
             
-            <!-- Rules reminder -->
-            <div class="bg-mus-50 border border-mus-200 rounded-lg p-4">
+            <!-- Dynamic validation message -->
+            <div x-show="validationMessage" x-transition class="p-4 rounded-lg" :class="isValid ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
-                        <svg class="w-5 h-5 text-mus-600" fill="currentColor" viewBox="0 0 20 20">
+                        <svg x-show="isValid" class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <svg x-show="!isValid" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm" :class="isValid ? 'text-green-800' : 'text-yellow-800'" x-text="validationMessage"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
                     </div>
                     <div class="ml-3">
-                        <p class="text-sm text-mus-800">
-                            <strong>Recordatorio:</strong> Una partida individual termina cuando un equipo llega a 40 puntos.
-                            La vaca se gana al mejor de 3 partidas.
+                        <p class="text-sm text-blue-800">
+                            <strong>Recordatorio:</strong> Una pareja debe ganar exactamente 3 partidas para ganar la vaca. La otra pareja puede ganar entre 0 y 2 partidas.
                         </p>
                     </div>
                 </div>
             </div>
             
-            <!-- Error message -->
-            <div x-show="errorMessage" x-transition 
-                 class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-800" x-text="errorMessage"></p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="text-center">
-                <button type="submit" 
-                        :disabled="isSubmitting"
-                        :class="isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-mus-600 hover:bg-mus-700'"
-                        class="text-white px-6 py-3 rounded-lg font-semibold transition-colors inline-flex items-center">
-                    <span x-show="!isSubmitting">🔐 Registrar Resultado (Requiere Admin)</span>
-                    <span x-show="isSubmitting">⏳ Registrando...</span>
-                    <svg x-show="!isSubmitting" class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </button>
-            </div>
+            <button type="submit" 
+                    :disabled="!isValid || isSubmitting"
+                    :class="isValid && !isSubmitting ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'"
+                    class="w-full md:w-auto text-white px-6 py-3 rounded-md font-semibold transition-colors">
+                <span x-show="!isSubmitting">🏆 Registrar Resultado Final</span>
+                <span x-show="isSubmitting">⏳ Registrando...</span>
+            </button>
         </form>
     </div>
     {% endif %}
+
+    <!-- Match Info -->
+    <div class="bg-gray-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">📋 Información del Enfrentamiento</h3>
+        <div class="space-y-2 text-sm text-gray-600">
+            <p><strong>ID:</strong> {{ match.id }}</p>
+            <p><strong>Estado:</strong> 
+                {% if match.status.value == 'completed' %}
+                    ✅ Completado
+                {% elif match.status.value == 'in_progress' %}
+                    ⚡ En progreso
+                {% else %}
+                    ⏳ Pendiente
+                {% endif %}
+            </p>
+            <p><strong>Creado:</strong> {{ match.created_at.strftime('%d/%m/%Y %H:%M') if match.created_at else 'N/A' }}</p>
+            {% if match.completed_at %}
+            <p><strong>Completado:</strong> {{ match.completed_at.strftime('%d/%m/%Y %H:%M') }}</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

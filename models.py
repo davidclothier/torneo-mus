@@ -23,7 +23,6 @@ class Team(Base):
     matches_as_team1 = relationship("Match", foreign_keys="[Match.team1_id]", back_populates="team1")
     matches_as_team2 = relationship("Match", foreign_keys="[Match.team2_id]", back_populates="team2")
     won_matches = relationship("Match", foreign_keys="[Match.winner_id]", back_populates="winner")
-    won_games = relationship("Game", foreign_keys="[Game.winner_id]", back_populates="winner")
 
 class Match(Base):
     __tablename__ = "matches"
@@ -33,6 +32,8 @@ class Match(Base):
     team2_id = Column(Integer, ForeignKey("teams.id"))
     status = Column(Enum(MatchStatus), default=MatchStatus.PENDING)
     winner_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    team1_games_won = Column(Integer, default=0)  # Partidas ganadas por team1
+    team2_games_won = Column(Integer, default=0)  # Partidas ganadas por team2
     created_at = Column(DateTime, server_default=func.now())
     completed_at = Column(DateTime, nullable=True)
     
@@ -40,19 +41,4 @@ class Match(Base):
     team1 = relationship("Team", foreign_keys=[team1_id], back_populates="matches_as_team1")
     team2 = relationship("Team", foreign_keys=[team2_id], back_populates="matches_as_team2")
     winner = relationship("Team", foreign_keys=[winner_id], back_populates="won_matches")
-    games = relationship("Game", back_populates="match")
 
-class Game(Base):
-    __tablename__ = "games"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    match_id = Column(Integer, ForeignKey("matches.id"))
-    team1_score = Column(Integer)
-    team2_score = Column(Integer)
-    winner_id = Column(Integer, ForeignKey("teams.id"))
-    game_number = Column(Integer)
-    created_at = Column(DateTime, server_default=func.now())
-    
-    # Relationships
-    match = relationship("Match", back_populates="games")
-    winner = relationship("Team", foreign_keys=[winner_id], back_populates="won_games")
